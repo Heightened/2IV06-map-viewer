@@ -1,4 +1,4 @@
-#version 420 core
+#version 130
 
 in vec3 fPosition;
 in vec3 fNormal;

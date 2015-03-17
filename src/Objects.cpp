@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <vector>
 
 #include <wx/log.h> 
 
@@ -318,43 +319,44 @@ Normals::Normals(size_t vertexCount, GLfloat * vertices, bool smooth) : Attribut
 
 	//Smooth by correcting for shared vertices if specified
 	if (smooth) {
-		//int * commons = new int[length/3];
 		GLfloat * sum = new GLfloat[length];
 
 		for (size_t i = 0; i < length; i += 3) {
-			//commons[i/3] = 0;
 			sum[i] = 0;
 			sum[i+1] = 0;
 			sum[i+2] = 0;
+			std::vector<int> equals;
 			for (size_t j = 0; j < length; j += 3) {
 				if (vertices[i] == vertices[j] && vertices[i+1] == vertices[j+1] && vertices[i+2] == vertices[j+2]) {
 					//two vertices are equal
 					//The normal should only be taken in to account if an identical one hasn't allready been added
 					//For now we'll approximate by normalizing the vector components individually
-					//commons[i/3]++;
+					/*
 					sum[i] += values[j];
 					sum[i+1] += values[j+1];
-					sum[i+2] += values[j+2];
+					sum[i+2] += values[j+2];*/
+					equals.push_back(j);
 				}
+			}
+
+			float equalsCount = (float) equals.size();
+			for (std::vector<int>::iterator it = equals.begin(); it != equals.end(); ++it) {
+				sum[i] += (values[(*it)] / equalsCount);
+				sum[i+1] += (values[(*it)+1] / equalsCount);
+				sum[i+2] += (values[(*it)+2] / equalsCount);
 			}
 		}
 
 		values = sum;
-		/*for (int i = 0; i < length; i += 3) {
-			//int commoncount = commons[i/3];
-			values[i] = (sum[i] != 0) ? sum[i] / glm::abs(sum[i]) : 0;// / commoncount;
-			values[i+1] = (sum[i+1] != 0) ? sum[i+1] / glm::abs(sum[i+1]) : 0;// / commoncount;
-			values[i+2] = (sum[i+2] != 0) ? sum[i+2] / glm::abs(sum[i+2]) : 0;// / commoncount;
-		}*/
-	}
 
-	//Normalize
-	for (size_t i = 0; i < length; i += 3) {
-		glm::vec3 normal = glm::vec3(values[i], values[i+1], values[i+2]);
-		float magnitude = sqrt(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
-		values[i] = normal.x / magnitude;
-		values[i+1] = normal.y / magnitude;
-		values[i+2] = normal.z / magnitude;
+		/*/Normalize
+		for (size_t i = 0; i < length; i += 3) {
+			glm::vec3 normal = glm::vec3(values[i], values[i+1], values[i+2]);
+			float magnitude = sqrt(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
+			values[i] = normal.x / magnitude;
+			values[i+1] = normal.y / magnitude;
+			values[i+2] = normal.z / magnitude;
+		}*/
 	}
 }
 
