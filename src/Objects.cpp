@@ -4,7 +4,6 @@
 
 #include <cmath>
 #include <cstdio>
-#include <vector>
 
 #include <wx/log.h> 
 
@@ -32,8 +31,8 @@ Object::Object(size_t _vertexCount, const GLfloat ** attributes) : vertexCount(_
 }
 
 Object::~Object() {
-	delete[] vertices;
-	delete[] normals;
+	wxDELETEA(vertices);
+	wxDELETEA(normals);
 
 	const GLuint buffers[] = {verticesId, normalsId};
 	glDeleteBuffers(2, buffers);
@@ -57,7 +56,7 @@ ColoredObject::ColoredObject(size_t _vertexCount, const GLfloat ** attributes) :
 }
 
 ColoredObject::~ColoredObject() {
-	delete[] colors;
+	wxDELETEA(colors);
 
 	const GLuint buffers[] = {colorsId};
 	glDeleteBuffers(1, buffers);
@@ -80,7 +79,7 @@ TexturedObject::TexturedObject(size_t _vertexCount, const GLfloat ** attributes)
 }
 
 TexturedObject::~TexturedObject() {
-	delete[] uvcoords;
+	wxDELETEA(uvcoords);
 
 	const GLuint buffers[] = {uvcoordsId};
 	glDeleteBuffers(1, buffers);
@@ -142,6 +141,11 @@ Attribute::Attribute(size_t l, GLfloat * v) : length(l), values(new GLfloat[l]) 
 	}
 }
 
+Attribute::~Attribute() {
+	//length = 0;
+	//wxDELETEA(values);
+}
+
 Attribute operator+ (const Attribute &first, const Attribute &second) {
 	size_t n = first.length + second.length;
 	GLfloat * result = new GLfloat[n];
@@ -177,6 +181,11 @@ QuadVertices::QuadVertices(glm::vec3 p, glm::vec3 x, glm::vec3 y) : Attribute(6*
 	}
 }
 
+QuadVertices::~QuadVertices() {
+	length = 0;
+	wxDELETEA(values);
+}
+
 BoxVertices::BoxVertices(float x, float y, float z) : Attribute(6*6*3) {
 	glm::vec3 xv(x,0,0), yv(0,y,0), zv(0,0,z),
 			o(-x/2,-y/2,0), a(o+xv), b(a+yv), c(o+yv), d(o+zv);
@@ -194,6 +203,11 @@ BoxVertices::BoxVertices(float x, float y, float z) : Attribute(6*6*3) {
 	for (int i = 0; i < length; i++) {
 		values[i] = boxVertices[i];
 	}
+}
+
+BoxVertices::~BoxVertices() {
+	length = 0;
+	wxDELETEA(values);
 }
 
 SphereVertices::SphereVertices(float r, int subdivisions) : Attribute(20 * 3 * 3 * (int)glm::pow(4.0f, (float)subdivisions)) {
@@ -288,6 +302,11 @@ SphereVertices::SphereVertices(float r, int subdivisions) : Attribute(20 * 3 * 3
 	}
 }
 
+SphereVertices::~SphereVertices() {
+	length = 0;
+	wxDELETEA(values);
+}
+
 //Vertex Attributes
 
 Normals::Normals(size_t vertexCount, GLfloat * vertices, bool smooth) : Attribute(vertexCount*3) {
@@ -360,6 +379,51 @@ Normals::Normals(size_t vertexCount, GLfloat * vertices, bool smooth) : Attribut
 	}
 }
 
+Normals::~Normals() {
+	length = 0;
+	wxDELETEA(values);
+}
+
+void Normals::smooth(Attribute* vertices, std::vector<Attribute*> othervertices, std::vector<Normals*> othernormals) {
+	GLfloat* own = vertices->getValues();
+
+	GLfloat * sum = new GLfloat[length];
+	for (size_t i = 0; i < length; i += 3) {
+		sum[i] = 0;
+		sum[i+1] = 0;
+		sum[i+2] = 0;
+		std::vector<glm::vec3> equals;
+		
+		int k = 0;
+		for (std::vector<Attribute*>::iterator it = othervertices.begin(); it != othervertices.end(); ++it) {
+			int size = othervertices[k]->getSize();
+			GLfloat* others = othervertices[k]->getValues();
+			for (size_t j = 0; j < size; j += 3) {
+				if (own[i] == others[j] && own[i+1] == others[j+1] && own[i+2] == others[j+2]) {
+					GLfloat* otherN = othernormals[k]->getValues();
+					equals.push_back(glm::vec3(otherN[j], otherN[j+1], otherN[j+2]));
+					//At most one vertex per object will be equal, assuming if there are no duplicate vertices
+					//This is the case with our maps but will need to be adressed when this method is use in another context
+					//break;
+				}
+			}
+			k++;
+		}
+
+		float equalsCount = (float) equals.size()+1;
+		sum[i] += (own[i] / equalsCount);
+		sum[i+1] += (own[i+1] / equalsCount);
+		sum[i+2] += (own[i+2] / equalsCount);
+		for (std::vector<glm::vec3>::iterator it = equals.begin(); it != equals.end(); ++it) {
+			sum[i] += ((*it).x / equalsCount);
+			sum[i+1] += ((*it).y / equalsCount);
+			sum[i+2] += ((*it).z / equalsCount);
+		}
+	}
+
+	values = sum;
+}
+
 SolidColor::SolidColor(size_t vertexCount, float r, float g, float b) : Attribute(vertexCount*3) {
 	//values = new GLfloat[length];
 	for (size_t i = 0; i < length; i += 3) {
@@ -368,4 +432,9 @@ SolidColor::SolidColor(size_t vertexCount, float r, float g, float b) : Attribut
 		values[i+1] = g;
 		values[i+2] = b;
 	}
+}
+
+SolidColor::~SolidColor() {
+	length = 0;
+	wxDELETEA(values);
 }
