@@ -396,24 +396,18 @@ void Normals::smooth(Attribute* vertices, std::vector<Attribute*> othervertices,
 		
 		int k = 0;
 		for (std::vector<Attribute*>::iterator it = othervertices.begin(); it != othervertices.end(); ++it) {
-			int size = othervertices[k]->getSize();
-			GLfloat* others = othervertices[k]->getValues();
+			int size = (*it)->getSize();
+			GLfloat* others = (*it)->getValues();
 			for (size_t j = 0; j < size; j += 3) {
 				if (own[i] == others[j] && own[i+1] == others[j+1] && own[i+2] == others[j+2]) {
 					GLfloat* otherN = othernormals[k]->getValues();
 					equals.push_back(glm::vec3(otherN[j], otherN[j+1], otherN[j+2]));
-					//At most one vertex per object will be equal, assuming if there are no duplicate vertices
-					//This is the case with our maps but will need to be adressed when this method is use in another context
-					//break;
 				}
 			}
 			k++;
 		}
 
-		float equalsCount = (float) equals.size()+1;
-		sum[i] += (own[i] / equalsCount);
-		sum[i+1] += (own[i+1] / equalsCount);
-		sum[i+2] += (own[i+2] / equalsCount);
+		float equalsCount = (float) equals.size();
 		for (std::vector<glm::vec3>::iterator it = equals.begin(); it != equals.end(); ++it) {
 			sum[i] += ((*it).x / equalsCount);
 			sum[i+1] += ((*it).y / equalsCount);

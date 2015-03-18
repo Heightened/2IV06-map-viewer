@@ -4,19 +4,21 @@
 
 #include "wx/log.h"
 
-typedef std::vector<Map::Edge, std::allocator<Map::Edge> > BORDERLIST;
+typedef std::vector<Map::Edge*, std::allocator<Map::Edge*> > BORDERLIST;
 typedef std::set<Map::Corner*, std::less<Map::Corner*>, std::allocator<Map::Corner*> > CORNERSET;
 typedef std::set<Map::Center*, std::less<Map::Center*>, std::allocator<Map::Center*> > NEIGHBOURSET;
+
+#define rgb(r,g,b) r/255.0f, g/255.0f, b/255.0f
 
 MapSurfaceCellVertices::MapSurfaceCellVertices(Map::Center* center, int size) : Attribute(size * 3 * 3) {
 	Attribute vertices = Attribute(0, 0);
 	
 	glm::vec3 c(center->point, center->elevation);
-	wxLogError(wxT("elevation: %f, size: %i"), center->elevation, size);
+	//wxLogError(wxT("elevation: %f, size: %i"), center->elevation, size);
 
 	for(BORDERLIST::iterator it = center->borders.begin(); it != center->borders.end(); ++it) {
-		glm::vec3 a((*it).v0->point, (*it).v0->elevation);
-		glm::vec3 b((*it).v1->point, (*it).v1->elevation);
+		glm::vec3 a((*it)->v0->point, (*it)->v0->elevation);
+		glm::vec3 b((*it)->v1->point, (*it)->v1->elevation);
 		
 		//The correctly ordered face will have a normal with positive z
 		if (glm::cross(a-c, b-c).z < 0) {
@@ -25,10 +27,12 @@ MapSurfaceCellVertices::MapSurfaceCellVertices(Map::Center* center, int size) : 
 			b = temp;
 		}
 
+		float maxheight = 80.0f;
+
 		GLfloat triangle[] = {
-			a.x, a.y, a.z*3.0f,
-			b.x, b.y, b.z*3.0f,
-			c.x, c.y, c.z*3.0f
+			a.x, a.y, a.z * maxheight,
+			b.x, b.y, b.z * maxheight,
+			c.x, c.y, c.z * maxheight
 		};
 
 		vertices = vertices + Attribute(3 * 3, &triangle[0]);
@@ -84,17 +88,67 @@ MapSurface::MapSurface(std::vector<Map::Center*> centers) {
 		normals[i] = new Normals(vertices[i]->size()/3, *vertices[i], false);
 		
 		glm::vec3 c(0.2f, 0.8f, 0.2f);
-		if ((*it)->ocean) {
-			c = glm::vec3(0.1f, 0.1f, 0.3f);
-		} else if ((*it)->water) {
-			c = glm::vec3(0.2f, 0.2f, 0.6f);
-		} else if ((*it)->coast) {
-			c = glm::vec3(0.6f, 0.8f, 0.2f);
+		switch((*it)->biome) {
+			case Map::LAKE:
+				c = glm::vec3(rgb(91, 132, 173));
+				break;
+			case Map::BEACH:
+				c = glm::vec3(rgb(172,159,139));
+				break;
+			case Map::ICE:
+				c = glm::vec3(rgb(222, 230, 245));
+				break;
+			case Map::MARSH:
+				c = glm::vec3(rgb(64, 108, 86));
+				break;
+			case Map::SNOW:
+				c = glm::vec3(rgb(248, 248, 248));
+				break;
+			case Map::TUNDRA:
+				c = glm::vec3(rgb(221, 221, 187));
+				break;
+			case Map::BARE:
+				c = glm::vec3(rgb(187, 187, 187));
+				break;
+			case Map::SCORCHED:
+				c = glm::vec3(rgb(153, 153, 153));
+				break;
+			case Map::TAIGA:
+				c = glm::vec3(rgb(204, 212, 187));
+				break;
+			case Map::SHRUBLAND:
+				c = glm::vec3(rgb(196, 204, 187));
+				break;
+			case Map::TEMPERATE_DESERT:
+				c = glm::vec3(rgb(228, 232, 202));
+				break;
+			case Map::TEMPERATE_RAIN_FOREST:
+				c = glm::vec3(rgb(164, 196, 168));
+				break;
+			case Map::TEMPERATE_DECIDUOUS_FOREST:
+				c = glm::vec3(rgb(180, 201, 169));
+				break;
+			case Map::GRASSLAND:
+				c = glm::vec3(rgb(196, 212, 170));
+				break;
+			case Map::TROPICAL_RAIN_FOREST:
+				c = glm::vec3(rgb(156, 187, 169));
+				break;
+			case Map::TROPICAL_SEASONAL_FOREST:
+				c = glm::vec3(rgb(169, 204, 164));
+				break;
+			case Map::SUBTROPICAL_DESERT:
+				c = glm::vec3(rgb(233, 221, 199));
+				break;
+			case Map::OCEAN:
+			default:
+				c = glm::vec3(rgb(54, 54, 97));
 		}
 
 		color[i] = new SolidColor(vertices[i]->size()/3, c.r, c.g, c.b);
 		i++;
 	}
+	wxLogError(wxT("Assigned %i biome based colors"), i);
 
 	//Smooth normals
 	i = 0;
@@ -103,16 +157,16 @@ MapSurface::MapSurface(std::vector<Map::Center*> centers) {
 		std::vector<Normals*> neighbourNormals;
 
 		//Find neighbouring data
+		int j = 0;
 		for (std::vector<Map::Center*>::iterator it2 = centers.begin(); it2 != centers.end(); ++it2) {
-			int j = 0;
 			for (NEIGHBOURSET::iterator it3 = (*it)->neighbours.begin(); it3 != (*it)->neighbours.end(); ++it3) {
 				if ((*it2)->index == (*it3)->index) {
 					//it2 refers to a neighbour of it
 					neighbourVertices.push_back(vertices[j]);
 					neighbourNormals.push_back(normals[j]);
 				}
-				j++;
 			}
+			j++;
 		}
 
 		//Smoothing process
@@ -121,6 +175,8 @@ MapSurface::MapSurface(std::vector<Map::Center*> centers) {
 		i++;
 	}
 
+	wxLogError(wxT("Smoothed %i objects' normals"), i);
+
 	//Construct objects
 	i = 0;
 	for (std::vector<Map::Center*>::iterator it = centers.begin(); it != centers.end(); ++it) {
@@ -128,6 +184,7 @@ MapSurface::MapSurface(std::vector<Map::Center*> centers) {
 		cells[i] = new ColoredObject(vertices[i]->size()/3, &attributes[0]);
 		i++;
 	}
+	wxLogError(wxT("Constructed %i objects"), i);
 }
 
 void MapSurface::draw() {
