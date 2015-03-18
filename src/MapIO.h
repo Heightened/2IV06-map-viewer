@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 
 #include "Map.h"
+#include "StatusBar.h"
 
 namespace IO {
 	struct Center {
@@ -75,5 +76,5 @@ namespace IO {
 	};
 
 	void exportMap(FILE *file, std::vector<Map::Center*> centers);
-	std::vector<Map::Center*> importMap(FILE *file);
+	std::vector<Map::Center*> importMap(FILE *file, StatusProgressBar* statusBar);
 };

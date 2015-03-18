@@ -180,7 +180,7 @@ Map::Edge *edgeFromId(std::vector<Map::Edge*> edge, int id) {
 	}
 };
 
-std::vector<Map::Center*> IO::importMap(FILE *file) {
+std::vector<Map::Center*> IO::importMap(FILE *file, StatusProgressBar* statusBar) {
 	int centercount;
 	int cornercount;
 	int edgecount;
@@ -192,38 +192,57 @@ std::vector<Map::Center*> IO::importMap(FILE *file) {
 	int protrudes_count;
 	int adjacent_count;
 
+	statusBar->newProcess(3, "Importing main map components");
+	statusBar->nextProcessStep("Read cell centers");
+
 	fread(&centercount, sizeof(int), 1, file);
 	IO::Center* io_centers = (IO::Center*) malloc(centercount*sizeof(IO::Center));
 	fread(io_centers, sizeof(IO::Center), centercount, file);
+
+	statusBar->nextProcessStep("Read corners");
 
 	fread(&cornercount, sizeof(int), 1, file);
 	IO::Corner* io_corners = (IO::Corner*) malloc(cornercount*sizeof(IO::Corner));
 	fread(io_corners, sizeof(IO::Corner), cornercount, file);
 
+	statusBar->nextProcessStep("Read edges");
+
 	fread(&edgecount, sizeof(int), 1, file);
 	IO::Edge* io_edges = (IO::Edge*) malloc(edgecount*sizeof(IO::Edge));
 	fread(io_edges, sizeof(IO::Edge), edgecount, file);
 
+	statusBar->newProcess(6, "Importing component relationships");
+	statusBar->nextProcessStep("Read neighbours");
 
 	fread(&neighbours_count, sizeof(int), 1, file);
 	IO::Neighbour_rel* neighbours_a = (IO::Neighbour_rel*) malloc(neighbours_count*sizeof(IO::Neighbour_rel));
 	fread(neighbours_a, sizeof(IO::Neighbour_rel), neighbours_count, file);
 
+	statusBar->nextProcessStep("Read borders");
+
 	fread(&borders_count, sizeof(int), 1, file);
 	IO::Border_rel* borders_a = (IO::Border_rel*) malloc(borders_count*sizeof(IO::Border_rel));
 	fread(borders_a, sizeof(IO::Border_rel), borders_count, file);
+
+	statusBar->nextProcessStep("Read corners");
 
 	fread(&corner_rel_count, sizeof(int), 1, file);
 	IO::Corner_rel* corner_rel_a = (IO::Corner_rel*) malloc(corner_rel_count*sizeof(IO::Corner_rel));
 	fread(corner_rel_a, sizeof(IO::Corner_rel), corner_rel_count, file);
 
+	statusBar->nextProcessStep("Read touches");
+
 	fread(&touches_count, sizeof(int), 1, file);
 	IO::Touches_rel* touches_a = (IO::Touches_rel*) malloc(touches_count*sizeof(IO::Touches_rel));
 	fread(touches_a, sizeof(IO::Touches_rel), touches_count, file);
 
+	statusBar->nextProcessStep("Read protrudes");
+
 	fread(&protrudes_count, sizeof(int), 1, file);
 	IO::Protrudes_rel* protrudes_a = (IO::Protrudes_rel*) malloc(protrudes_count*sizeof(IO::Protrudes_rel));
 	fread(protrudes_a, sizeof(IO::Protrudes_rel), protrudes_count, file);
+
+	statusBar->nextProcessStep("Read adjacent");
 
 	fread(&adjacent_count, sizeof(int), 1, file);
 	IO::Adjacent_rel* adjacent_a = (IO::Adjacent_rel*) malloc(adjacent_count*sizeof(IO::Adjacent_rel));
@@ -234,6 +253,9 @@ std::vector<Map::Center*> IO::importMap(FILE *file) {
 	std::map<int, Map::Edge*> edges;
 
 	//Rebuild Map data structures
+
+	statusBar->newProcess(3, "Rebuilding map data structures");
+	statusBar->nextProcessStep("Construct centers");
 
 	for (int i = 0; i < centercount; i++) {
 		Map::Center *c = new Map::Center(io_centers[i].index, io_centers[i].point);
@@ -248,6 +270,8 @@ std::vector<Map::Center*> IO::importMap(FILE *file) {
 		centers.insert(std::pair<int, Map::Center*>(io_centers[i].index, c));
 	}
 
+	statusBar->nextProcessStep("Construct corners");
+
 	for (int i = 0; i < cornercount; i++) {
 		Map::Corner *c = new Map::Corner(io_corners[i].index, io_corners[i].point);
 		c->water = io_corners[i].water;
@@ -260,6 +284,8 @@ std::vector<Map::Center*> IO::importMap(FILE *file) {
 
 		corners.insert(std::pair<int, Map::Corner*>(io_corners[i].index, c));
 	}
+
+	statusBar->nextProcessStep("Construct edges");
 
 	for (int i = 0; i < edgecount; i++) {
 		Map::Edge *e = new Map::Edge(
@@ -280,35 +306,50 @@ std::vector<Map::Center*> IO::importMap(FILE *file) {
 		corners[io_corners[i].index]->watershed = corners[corners, io_corners[i].corner_watershed];
 	}
 
+	statusBar->newProcess(7, "Rebuilding relations");
+	statusBar->nextProcessStep("one to one relations");
+
 	//Rebuild relations
 	//The structure here is always the same.
 	//We use the *FromId functions to get a pointer to the out node,
 	//Then we add the in node to the relation structure on the out node
+
+	statusBar->nextProcessStep("neighbours");
 
 	for (int i = 0; i < neighbours_count; i++) {
 		Map::Center* out = centers[neighbours_a[i].center_out];
 		if (out != NULL) out->neighbours.insert(centers[neighbours_a[i].center_in]);
 	}
 
+	statusBar->nextProcessStep("borders");
+
 	for (int i = 0; i < borders_count; i++) {
 		Map::Center* out = centers[borders_a[i].center_out];
 		if (out != NULL) out->borders.push_back(edges[borders_a[i].edge_in]);
 	}
+
+	statusBar->nextProcessStep("corners");
 
 	for (int i = 0; i < corner_rel_count; i++) {
 		Map::Center* out = centers[corner_rel_a[i].center_out];
 		if (out != NULL) out->corners.insert(corners[corner_rel_a[i].corner_in]);
 	}
 
+	statusBar->nextProcessStep("touches");
+
 	for (int i = 0; i < touches_count; i++) {
 		Map::Corner* out = corners[touches_a[i].corner_out];
 		if (out != NULL) out->touches.insert(centers[touches_a[i].center_in]);
 	}
 
+	statusBar->nextProcessStep("protrudes");
+
 	for (int i = 0; i < protrudes_count; i++) {
 		Map::Corner* out = corners[protrudes_a[i].corner_out];
 		if (out != NULL) out->protrudes.push_back(edges[protrudes_a[i].edge_in]);
 	}
+
+	statusBar->nextProcessStep("adjacent");
 
 	for (int i = 0; i < adjacent_count; i++) {
 		Map::Corner* out = corners[adjacent_a[i].corner_out];
@@ -321,6 +362,8 @@ std::vector<Map::Center*> IO::importMap(FILE *file) {
 		ret.push_back(&(*it->second));
 	}
 
+	statusBar->finishProcess();
+	
 	return ret;
 };
 
