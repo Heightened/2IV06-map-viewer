@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <vector>
 
 #define PREDEFINEDOBJECTS 
 
@@ -72,31 +73,46 @@ public:
 	void rotate(glm::vec3 axis, float angle);
 
 	Attribute(size_t l, GLfloat * v);
+	~Attribute();
 
 	friend Attribute operator+ (const Attribute &first, const Attribute &second);
+
+	int getSize() {
+		return length;
+	}
+	GLfloat* getValues() {
+		return values;
+	}
 };
 
 class QuadVertices : public Attribute {
 public:
 	QuadVertices(glm::vec3 p, glm::vec3 x, glm::vec3 y);
+	~QuadVertices();
 };
 
 class BoxVertices : public Attribute {
 public:
 	BoxVertices(float x, float y, float z);
+	~BoxVertices();
 };
 
 class SphereVertices : public Attribute {
 public:
 	SphereVertices(float r, int subdivisions);
+	~SphereVertices();
 };
 
 class Normals : public Attribute {
 public:
 	Normals(size_t vertexCount, GLfloat * vertices, bool smooth);
+	~Normals();
+
+	void smooth(Attribute* vertices, std::vector<Attribute*> othervertices, std::vector<Normals*> othernormals);
 };
 
 class SolidColor : public Attribute {
 public:
 	SolidColor(size_t vertexCount, float r, float g, float b);
+	~SolidColor();
 };

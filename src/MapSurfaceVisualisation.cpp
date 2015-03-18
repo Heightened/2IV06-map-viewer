@@ -6,6 +6,7 @@
 
 typedef std::vector<Map::Edge, std::allocator<Map::Edge> > BORDERLIST;
 typedef std::set<Map::Corner*, std::less<Map::Corner*>, std::allocator<Map::Corner*> > CORNERSET;
+typedef std::set<Map::Center*, std::less<Map::Center*>, std::allocator<Map::Center*> > NEIGHBOURSET;
 
 MapSurfaceCellVertices::MapSurfaceCellVertices(Map::Center* center, int size) : Attribute(size * 3 * 3) {
 	Attribute vertices = Attribute(0, 0);
@@ -61,16 +62,27 @@ MapSurfaceCellVertices::MapSurfaceCellVertices(Map::Center* center, int size) : 
 	}
 }
 
+MapSurfaceCellVertices::~MapSurfaceCellVertices() {
+	length = 0;
+	wxDELETEA(values);
+}
+
 MapSurface::MapSurface(std::vector<Map::Center*> centers) {
 	cellcount = centers.size();
 
 	cells = new ColoredObject*[cellcount];
 
+	MapSurfaceCellVertices** vertices = new MapSurfaceCellVertices*[cellcount];
+	Normals** normals = new Normals*[cellcount];
+	SolidColor** color = new SolidColor*[cellcount];
+
+	//Calculate initial object attributes
+
 	int i = 0;
 	for (std::vector<Map::Center*>::iterator it = centers.begin(); it != centers.end(); ++it) {
-		MapSurfaceCellVertices vertices((*it), (*it)->borders.size());
-		Normals normals(vertices.size()/3, vertices, true);
-
+		vertices[i] = new MapSurfaceCellVertices((*it), (*it)->borders.size());
+		normals[i] = new Normals(vertices[i]->size()/3, *vertices[i], false);
+		
 		glm::vec3 c(0.2f, 0.8f, 0.2f);
 		if ((*it)->ocean) {
 			c = glm::vec3(0.1f, 0.1f, 0.3f);
@@ -80,10 +92,40 @@ MapSurface::MapSurface(std::vector<Map::Center*> centers) {
 			c = glm::vec3(0.6f, 0.8f, 0.2f);
 		}
 
-		SolidColor color(vertices.size()/3, c.r, c.g, c.b);
-		const GLfloat* attributes[] = {vertices, normals, color};
-		cells[i] = new ColoredObject(vertices.size()/3, &attributes[0]);
-		
+		color[i] = new SolidColor(vertices[i]->size()/3, c.r, c.g, c.b);
+		i++;
+	}
+
+	//Smooth normals
+	i = 0;
+	for (std::vector<Map::Center*>::iterator it = centers.begin(); it != centers.end(); ++it) {
+		std::vector<Attribute*> neighbourVertices;
+		std::vector<Normals*> neighbourNormals;
+
+		//Find neighbouring data
+		for (std::vector<Map::Center*>::iterator it2 = centers.begin(); it2 != centers.end(); ++it2) {
+			int j = 0;
+			for (NEIGHBOURSET::iterator it3 = (*it)->neighbours.begin(); it3 != (*it)->neighbours.end(); ++it3) {
+				if ((*it2)->index == (*it3)->index) {
+					//it2 refers to a neighbour of it
+					neighbourVertices.push_back(vertices[j]);
+					neighbourNormals.push_back(normals[j]);
+				}
+				j++;
+			}
+		}
+
+		//Smoothing process
+		normals[i]->smooth(vertices[i], neighbourVertices, neighbourNormals);
+
+		i++;
+	}
+
+	//Construct objects
+	i = 0;
+	for (std::vector<Map::Center*>::iterator it = centers.begin(); it != centers.end(); ++it) {
+		const GLfloat* attributes[] = {*vertices[i], *normals[i], *color[i]};
+		cells[i] = new ColoredObject(vertices[i]->size()/3, &attributes[0]);
 		i++;
 	}
 }

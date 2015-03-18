@@ -4,6 +4,7 @@
 class MapSurfaceCellVertices : public Attribute {
 public:
 	MapSurfaceCellVertices(Map::Center* center, int size);
+	~MapSurfaceCellVertices();
 };
 
 class MapSurface {
