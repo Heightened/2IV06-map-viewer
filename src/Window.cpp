@@ -29,8 +29,10 @@ ViewerFrame::ViewerFrame(const wxString& title, const wxPoint& pos, const wxSize
 
 	//Initialize Status bar
 
-    CreateStatusBar();
-    SetStatusText("Welcome to View-an-Isle!");
+    //CreateStatusBar();
+	statusBar = new StatusProgressBar(this);
+    statusBar->SetStatusText("Welcome to View-an-Isle!");
+	SetStatusBar(statusBar);
 
 	//Initialize Map preview
 

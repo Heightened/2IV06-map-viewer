@@ -5,6 +5,7 @@
 #endif
 
 #include "Canvas.h"
+#include "StatusBar.h"
 
 class ViewerApp : public wxApp {
 public:
@@ -29,6 +30,7 @@ class ViewerFrame : public wxFrame {
 
 	Canvas* mapPreview;
 	wxGLContext* glContext;
+	StatusProgressBar* statusBar;
 
 public:
 	ViewerFrame(const wxString& title, const wxPoint& pos, const wxSize& size);
