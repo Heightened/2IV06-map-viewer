@@ -63,7 +63,8 @@ void ViewerFrame::OnOpen(wxCommandEvent& event) {
 		wxString CurrentDocPath = ImportDialog->GetPath();
 		FILE * file= fopen(CurrentDocPath.c_str().AsChar(), "rb");
 		if (file != NULL) {
-			mapPreview->GenerateGeometry(IO::importMap(file, statusBar));
+			Map::Info *info;
+			mapPreview->GenerateGeometry(IO::importMap(file, statusBar, info));
 			mapPreview->Refresh(false);
 		} else {
 			wxLogMessage("Failed to open file");

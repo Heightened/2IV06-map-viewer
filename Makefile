@@ -13,7 +13,7 @@ LIBS = $(WX_LIBS) -lGL -lGLU -lglew
 
 PROGRAM = $(BINDIR)/viewer
 
-OBJ_NAMES = Canvas Island MapIO MapSurfaceVisualisation Objects SimpleCanvas Window
+OBJ_NAMES = Canvas Island MapIO MapSurfaceVisualisation Objects SimpleCanvas StatusBar Window
 OBJECTS = $(addsuffix .o, $(addprefix $(OBJDIR)/, $(OBJ_NAMES)))
 
 .SUFFIXES: .o .cpp
