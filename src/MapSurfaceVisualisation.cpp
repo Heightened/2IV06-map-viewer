@@ -19,6 +19,11 @@ MapSurfaceCellVertices::MapSurfaceCellVertices(Map::Center* center, int size) : 
 	for(BORDERLIST::iterator it = center->borders.begin(); it != center->borders.end(); ++it) {
 		glm::vec3 a((*it)->v0->point, (*it)->v0->elevation);
 		glm::vec3 b((*it)->v1->point, (*it)->v1->elevation);
+
+		/*float riverWidth = (*it)->river / 1.0f;
+		if ((*it)->river > 0) {
+			//If the border is part of a river adjust geometry
+		}*/
 		
 		//The correctly ordered face will have a normal with positive z
 		if (glm::cross(a-c, b-c).z < 0) {
@@ -71,7 +76,7 @@ MapSurfaceCellVertices::~MapSurfaceCellVertices() {
 	wxDELETEA(values);
 }
 
-MapSurface::MapSurface(std::vector<Map::Center*> centers) {
+MapSurface::MapSurface(std::vector<Map::Center*> centers, StatusProgressBar* statusBar) {
 	cellcount = centers.size();
 
 	cells = new ColoredObject*[cellcount];
@@ -82,8 +87,13 @@ MapSurface::MapSurface(std::vector<Map::Center*> centers) {
 
 	//Calculate initial object attributes
 
+	statusBar->newProcess(centers.size(), "Generating geometry");
+	statusBar->setCurrentStep("Calculate initial vertex attributes");
+
 	int i = 0;
 	for (std::vector<Map::Center*>::iterator it = centers.begin(); it != centers.end(); ++it) {
+		statusBar->nextProcessStep();
+
 		vertices[i] = new MapSurfaceCellVertices((*it), (*it)->borders.size());
 		normals[i] = new Normals(vertices[i]->size()/3, *vertices[i], false);
 		
@@ -151,8 +161,13 @@ MapSurface::MapSurface(std::vector<Map::Center*> centers) {
 	wxLogError(wxT("Assigned %i biome based colors"), i);
 
 	//Smooth normals
+	statusBar->newProcess(centers.size(), "Applying normal smoothing");
+	statusBar->setCurrentStep("Modify cell normals");
+
 	i = 0;
 	for (std::vector<Map::Center*>::iterator it = centers.begin(); it != centers.end(); ++it) {
+		statusBar->nextProcessStep();
+
 		std::vector<Attribute*> neighbourVertices;
 		std::vector<Normals*> neighbourNormals;
 
@@ -178,13 +193,20 @@ MapSurface::MapSurface(std::vector<Map::Center*> centers) {
 	wxLogError(wxT("Smoothed %i objects' normals"), i);
 
 	//Construct objects
+	statusBar->newProcess(centers.size(), "Constructing objects");
+	statusBar->setCurrentStep("Assign cell attributes to object");
+
 	i = 0;
 	for (std::vector<Map::Center*>::iterator it = centers.begin(); it != centers.end(); ++it) {
+		statusBar->nextProcessStep();
+
 		const GLfloat* attributes[] = {*vertices[i], *normals[i], *color[i]};
 		cells[i] = new ColoredObject(vertices[i]->size()/3, &attributes[0]);
 		i++;
 	}
 	wxLogError(wxT("Constructed %i objects"), i);
+
+	statusBar->finishProcess();
 }
 
 void MapSurface::draw() {

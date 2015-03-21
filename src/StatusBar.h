@@ -15,6 +15,7 @@ public:
 	StatusProgressBar(wxWindow* parent);
 	
 	void newProcess(int steps, std::string description);
+	void setCurrentStep(std::string description);
 	void nextProcessStep();
 	void nextProcessStep(std::string description);
 	void finishProcess();

@@ -210,7 +210,7 @@ wxBEGIN_EVENT_TABLE(ShaderCanvas, wxGLCanvas)
 	EVT_KEY_DOWN(ShaderCanvas::OnKeyDown)
 wxEND_EVENT_TABLE()
 
-void ShaderCanvas::GenerateGeometry(std::vector<Map::Center*> centers) {
+void ShaderCanvas::GenerateGeometry(std::vector<Map::Center*> centers, StatusProgressBar* statusBar) {
 	for(std::vector<ColoredObject*>::iterator it = objects.begin(); it != objects.end(); ++it) {
 		delete (*it);
 	}
@@ -221,7 +221,7 @@ void ShaderCanvas::GenerateGeometry(std::vector<Map::Center*> centers) {
 
 	wxLogError(wxT("centers size: %i"), centers.size());
 
-	surface = new MapSurface(centers);
+	surface = new MapSurface(centers, statusBar);
 }
 
 void ShaderCanvas::Paint(wxPaintEvent& WXUNUSED(event)) {

@@ -14,6 +14,7 @@
 
 #include "Map.h"
 #include "MapSurfaceVisualisation.h"
+#include "StatusBar.h"
 
 #ifndef PREDEFINEDOBJECTS
 	#include "Objects.h"
@@ -86,7 +87,7 @@ public:
 
 		this->size = size;
 	}
-	virtual void GenerateGeometry(std::vector<Map::Center*>) = 0;
+	virtual void GenerateGeometry(std::vector<Map::Center*>, StatusProgressBar* statusBar) = 0;
 	virtual void Paint(wxPaintEvent& WXUNUSED(event)) = 0;
 	virtual void Initialize() = 0;
 	virtual void Initialize(wxGLContext* context) {
@@ -105,7 +106,7 @@ class ShaderCanvas : public Canvas {
 	void OnKeyDown(wxKeyEvent& event);
 public:
 	ShaderCanvas(wxWindow* parent, wxSize size): Canvas(parent, size) {};
-	virtual void GenerateGeometry(std::vector<Map::Center*>);
+	virtual void GenerateGeometry(std::vector<Map::Center*>, StatusProgressBar* statusBar);
 	virtual void Paint(wxPaintEvent& WXUNUSED(event));
 	virtual void Initialize() {};
 	virtual void Initialize(wxGLContext* context);

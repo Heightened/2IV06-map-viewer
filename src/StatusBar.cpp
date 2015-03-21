@@ -17,19 +17,29 @@ float StatusProgressBar::progress() {
 	return (current / (float) steps);
 }
 
-void StatusProgressBar::nextProcessStep() {
-	current++;
-	gauge->SetValue(progress() * 100);
+void StatusProgressBar::setCurrentStep(std::string description_) {
+	currentstep = description_;
 	char text[1000] = {0};
-	std::string format = description + " - " + currentstep + " (step %i/%i)";
+	std::string format = description + " - " + currentstep;
 	sprintf(text, format.c_str(), current, steps);
 	this->SetStatusText(text);
 	this->Update();
 }
 
-void StatusProgressBar::nextProcessStep(std::string description) {
-	currentstep = description;
+void StatusProgressBar::nextProcessStep() {
+	current++;
+	gauge->SetValue(progress() * 100);
+	this->Update();
+}
+
+void StatusProgressBar::nextProcessStep(std::string description_) {
+	currentstep = description_;
 	nextProcessStep();
+	char text[1000] = {0};
+	std::string format = description + " - " + currentstep + " (step %i/%i)";
+	sprintf(text, format.c_str(), current, steps);
+	this->SetStatusText(text);
+	this->Update();
 }
 
 void StatusProgressBar::finishProcess() {
